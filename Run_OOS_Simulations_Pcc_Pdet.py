@@ -145,7 +145,6 @@ def input():
 def generate_wind_RT_realizations(data,T,NumSimCases,bias,Sigma_baseline_Multiplier):
     #Function to generate wind realizations to be picked up from a given probability distribution, based on whether biased is set to 1
     K = [k for k, k_info in data['WindFarm'].items()]
-    #column_names = ['Wind Farm Number', 'Hour of the Day', 'Simulation Number','WPP Forecast (MW)', 'WPP Actual (MW)']
     column_names =['Wind Farm Number', 'Hour of the Day', 'Scenario Number','WPP Forecast(MW)','WPP Actual(MW)','Error']
     df_main = pd.DataFrame(columns = column_names)
     for k in K:
@@ -183,10 +182,12 @@ OOS_Scenarios = pd.read_csv('WindForecast_Errors_1000Scenarios.csv')   #Uncommen
 #FileName = 'WindForecast_Errors_1000Scenarios.csv'                #Saving Scenarios_to_CSV_File
 #export_csv = OOS_Scenarios.to_csv(FileName,index=None,header=True)
 
-#Running Pdet: Deterministic Testbench for the given data and scenarios: Both Day Ahead (once) and Real-time Optimization Problems (NumSimCases times)  need to be called in sequence
+#Running Pdet: Deterministic Testbench for the given data and scenarios: Both Day Ahead (once) and Real-time Optimization Problems (NumSimCases times) are called sequentially
 Pdet_RTRedispatchCost_with_MRR = []
-MRR=200     #Value of Minimum Reserve Requirement set 
+MRR=200     #Value of Minimum Reserve Requirement set
 Pdet_DACost,status,varData,Pdet_lambda_DA_vals,Pdet_lambda_RE_vals,Pdet_GenProd,Pdet_Reserves,WindForecast,NetLoad,Pdet_DAEnergyCost,Pdet_DAReserveProcCost,Pdet_DA_EnergyCostPerGen,Pdet_DA_ReserveCostPerGen = clearDAMarket_and_Reserves(SystemData,MRR)
+print('----Pdet Day Ahead Optimization Done -----')
+print('------------------------------------------')
 print('Pdet_EnergyEarningsPerGenerator: {}'.format(Pdet_DA_EnergyCostPerGen))
 print('Pdet_ReservePolicyCostsPerGenerator: {}'.format(Pdet_DA_ReserveCostPerGen))
 
@@ -205,7 +206,7 @@ Pdet_Total_WindSpillage = []
 Pdet_Total_LoadShedding = []
 Pdet_TotalRTAdjustmentEnergyCosts = []
 for s in range(NumSimCases):
-    print('Scenario Num: {}'.format(s))
+    print('Pdet RT Scenario Num: {}'.format(s))
     Delta={}
     for t in T:
         Delta[t]=OOS_Scenarios[(OOS_Scenarios['Hour of the Day'] == t) & (OOS_Scenarios['Scenario Number'] == s)]['Error'].sum()
@@ -219,15 +220,14 @@ for s in range(NumSimCases):
     for iter in range(len(Pdet_Adjustments)):
         Pdet_AdjustmentCostsPerGenerator.append([np.inner(Pdet_Adjustments[iter],Pdet_lambda_DA_vals)])
     Pdet_TotalRTAdjustmentEnergyCosts.append(np.sum(Pdet_AdjustmentCostsPerGenerator))
-    print('Pdet_Adjustment Payments Made to Generators: {}'.format(Pdet_AdjustmentCostsPerGenerator))
 Pdet_RTRedispatchCost_with_MRR.append(Pdet_RTRedispatchCost)
-
-plt.boxplot(Pdet_RTRedispatchCost_with_MRR)
-plt.show()
+print('----Pdet Real-time Optimizations Done -----')
+print('------------------------------------------')
 
 #Running Pcc: Chance Constrained Co-optimization for the given data and scenarios: Day Ahead (once) and Real-time Optimization Settlemetn (NumSimCases times)
-Pcc_DACost,status,varData,Pcc_lambda_DA_vals,Pcc_lambda_RE_vals,Pcc_GenProd,Pcc_AlphaG,WindForecast,NetLoad,Pcc_DAEnergyCost,Pcc_DAReserveProcCost,Pcc_DA_EnergyCostPerGen,Pcc_DA_ReserveCostPerGen = clearDAMarket_and_Reserves_CC(SystemData,Sigma_baseline_Multiplier=0.3)
-print('------------')
+Pcc_DACost,status,varData,Pcc_lambda_DA_vals,Pcc_lambda_RE_vals,Pcc_GenProd,Pcc_AlphaG,WindForecast,NetLoad,Pcc_DAEnergyCost,Pcc_DAReserveProcCost,Pcc_DA_EnergyCostPerGen,Pcc_DA_ReserveCostPerGen = clearDAMarket_and_Reserves_CC(SystemData,Sigma_baseline_Multiplier=0.1)
+print('----Pcc Day Ahead Optimization Done -----')
+print('------------------------------------------')
 print('Pcc_EnergyEarningsPerGenerator: {}'.format(Pcc_DA_EnergyCostPerGen))
 print('Pcc_ReservePolicyCostsPerGenerator: {}'.format(Pcc_DA_ReserveCostPerGen))
 
@@ -247,9 +247,10 @@ Pcc_Total_LoadShedding =[]
 Pcc_TotalRTAdjustmentEnergyCosts = []
 for s in range(NumSimCases):
     Delta={}
+    print('Pcc RT Scenario Num: {}'.format(s))
     for t in T:
         Delta[t]=OOS_Scenarios[(OOS_Scenarios['Hour of the Day'] == t) & (OOS_Scenarios['Scenario Number'] == s)]['Error'].sum()
-    print('Deviation = {}'.format(Delta))
+    print('Done! \n -----')
     Pcc_RTCost, Pcc_NetGeneration, Pcc_WindSpilled,Pcc_LoadShed,Pcc_Adjustments = runRealTimeSimulations(SystemData,Delta,Pcc_DA_Opt_Dispatch,Pcc_DA_Opt_AlphaVals)
     Pcc_RTRedispatchCost.append(Pcc_RTCost)
     Pcc_Total_WindSpillage.append(Pcc_WindSpilled)
@@ -259,16 +260,10 @@ for s in range(NumSimCases):
     for iter in range(len(Pcc_Adjustments)):
         Pcc_AdjustmentCostsPerGenerator.append([np.inner(Pcc_Adjustments[iter],Pcc_lambda_DA_vals)])
     Pcc_TotalRTAdjustmentEnergyCosts.append(np.sum(Pcc_AdjustmentCostsPerGenerator))
-    print('Pcc_Adjustment Payments Made to Generators: {}'.format(Pcc_AdjustmentCostsPerGenerator))
+print('----Pcc Real Time Simulations Done -----')
+print('------------------------------------------')
 
-''' --------PLOTTING RESULTS and COMPARISONS ------- '''
-#Plot1: Scenario-wise comparison of total cost end of day between Pdet and Pcc
-plt.plot(Pdet_RTRedispatchCost, color='blue', linewidth=2, alpha=0.8, label='Deterministic')
-plt.plot(Pcc_RTRedispatchCost, color='red', linewidth=2, alpha=0.8, label='Chance-Constrained')
-plt.legend(loc='upper right')
-plt.show()
-
-
+''' -------- RESULTS and COMPARISONS ------- '''
 #Table 1: End_of_Day Expected Cost
 print('=========Pdet Costs : DAY AHEAD========')
 print('Pdet_DA_ReserveCost = {}'.format(Pdet_DAReserveProcCost*1e-3))
@@ -277,13 +272,12 @@ print('Pdet_DA_ObjectiveValue = {}'.format(Pdet_DACost*1e-3))
 print('Pdet_DA_Prices Lambda_DA:{}'.format(np.round(Pdet_lambda_DA_vals,2)))
 print('=========Pdet Costs : REAL TIME ADJUSTMENTS - EXPECTATION========')
 print('Pdet_RT_Redispatch_Cost = {}'.format(np.mean(Pdet_RTRedispatchCost)*1e-3))
-print('Pdet_Expected_Total_System_Costs = {}'.format((np.mean(Pdet_RTRedispatchCost)+Pdet_DAReserveProcCost)*1e-3))
-print('Pdet_Total_RT_Adjustment_Payments_to_Gens = {}'.format(Pdet_TotalRTAdjustmentEnergyCosts))
+print('Pdet_Average_Expected_Total_System_Costs = {}'.format((np.mean(Pdet_RTRedispatchCost)+Pdet_DAReserveProcCost)*1e-3))
+print('Pdet_Total_RT_Adjustment_Payments_to_Gens = {}'.format(np.round(Pdet_TotalRTAdjustmentEnergyCosts),2))
 print('=========================')
 print('=========Pdet SYSTEM PARAMETERS========')
-print('Pdet_Total_LoadShed: {}'.format(Pdet_Total_LoadShedding))
-print('Pdet_Total_WindSpilled: {}'.format(Pdet_Total_WindSpillage))
-
+print('Pdet_Total_LoadShed: {}'.format(np.round(Pdet_Total_LoadShedding,2)))
+print('Pdet_Total_WindSpilled: {}'.format(np.round(Pdet_Total_WindSpillage,2)))
 
 print('=========Pcc Costs========')
 print('Pcc_DA_ReserveCost = {}'.format(Pcc_DAReserveProcCost*1e-3))
@@ -293,9 +287,9 @@ print('Pcc_DA_Prices Lambda_DA:{}'.format(np.round(Pcc_lambda_DA_vals,2)))
 print('Pcc_ReservePolicy_Prices Lambda_RE:{}'.format(np.round(Pcc_lambda_RE_vals,2)))
 print('=========Pcc Costs : REAL TIME ADJUSTMENTS - EXPECTATION========')
 print('Pcc_RT_Redispatch_Cost = {}'.format(np.mean(Pcc_RTRedispatchCost)*1e-3))
-print('Pcc_Expected_Total_System_Costs = {}'.format((np.mean(Pcc_RTRedispatchCost)+Pcc_DAReserveProcCost)*1e-3))
-print('Pcc_Total_RT_Adjustment_Payments_to_Gens = {}'.format(Pcc_TotalRTAdjustmentEnergyCosts))
+print('Pcc_Average_Expected_Total_System_Costs = {}'.format((np.mean(Pcc_RTRedispatchCost)+Pcc_DAReserveProcCost)*1e-3))
+print('Pcc_Total_RT_Adjustment_Payments_to_Gens = {}'.format(np.round(Pcc_TotalRTAdjustmentEnergyCosts),2))
 print('=========================')
 print('=========Pcc SYSTEM PARAMETERS========')
-print('Pcc_Total_LoadShed: {}'.format(np.sum(Pcc_Total_LoadShedding)))
-print('Pcc_Total_WindSpilled: {}'.format(np.sum(Pcc_Total_WindSpillage)))
+print('Pcc_Total_LoadShed: {}'.format(np.round(np.sum(Pcc_Total_LoadShedding),2)))
+print('Pcc_Total_WindSpilled: {}'.format(np.round(np.sum(Pcc_Total_WindSpillage),2)))

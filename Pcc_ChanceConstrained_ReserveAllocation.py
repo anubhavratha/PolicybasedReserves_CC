@@ -1,8 +1,10 @@
-''' Case 1: Variable participation factor, SOCP -> Linear Implementation due to assumptions:
-a. Uncertain vectors are independent of each other
-b. Normal distribution of zero mean
-c. Participation factor aligns with the up/down regulation needed
-More description to come here '''
+''' Chance Constrained Policy-based Reserve Procurement '''
+''' Base_Case: Variable participation factor, SOCP -> Linear Implementation due to assumptions:
+    a. Uncertain vectors are independent of each other
+    b. Normal distribution of zero mean
+    c. Participation factor aligns with the up/down regulation needed
+    d. No transmission lines considered - single-node power systems
+'''
 
 import numpy as np
 import pandas as pd
@@ -35,16 +37,14 @@ def split_list(alist, wanted_parts=1):
 # Uncertainty Modelling -> Errors in forecast is cast as independent random variables centered at mu_val 0 and with a fixed sigma_val
 def generate_wind_error_variance(data,T,Sigma_baseline_Multiplier):
     #Function to generate wind forecasts for the different wind farm: Baseline standard deviation is considered as 7.5% of installed capacity,
-    #In the absence of historical data, the
     K = [k for k, k_info in data['WindFarm'].items()]
     sigma_k_hourly=[]
     var_omega_hourly = []
     for k in K:
         sigma_k_baseline = Sigma_baseline_Multiplier*data['WindFarm'][k]['Wmax']     #Base line Std Deviation is considered 7.5% of the max capacity
-        sigma_k_hourly=np.array(np.random.normal(sigma_k_baseline,0.2*sigma_k_baseline, len(T)))    #Hourly standard deviation is considered to be around the baseline at 20% STD Dev
+        sigma_k_hourly=np.array(np.random.normal(sigma_k_baseline,0.2*sigma_k_baseline, len(T)))
         var_omega_hourly.append(np.square(sigma_k_hourly))
     var_omega = np.sum(var_omega_hourly,axis=0)
-    #print(np.cov(var_omega_hourly[0],var_omega_hourly[1]))
     return var_omega
 
 ''' ----- DAY-AHEAD MARKET : FUNCTION DEFINITION ----'''
@@ -59,7 +59,6 @@ def clearDAMarket_and_Reserves_CC(data,Sigma_baseline_Multiplier):
     N = list(data['BusNums'])
     #Call the uncertainty model
     var_omega = generate_wind_error_variance(data,T,Sigma_baseline_Multiplier)
-    print(var_omega)
     # Create variables
     p = {}
     alpha_val={}
@@ -96,10 +95,6 @@ def clearDAMarket_and_Reserves_CC(data,Sigma_baseline_Multiplier):
                 m.addConstr(norm.ppf(1-data['FlexGens'][g]['epsilon'])*alpha_val[(g,t)]*np.sqrt(var_omega_t),gb.GRB.LESS_EQUAL,data['FlexGens'][g]['Rmax'],name="Ramping UP CC FlexGens {}{}".format(g,t))
                 m.addConstr(-norm.ppf(1-data['FlexGens'][g]['epsilon'])*alpha_val[(g,t)]*np.sqrt(var_omega_t),gb.GRB.LESS_EQUAL,data['FlexGens'][g]['Rmax'],name="Ramping DN Max CC FlexGens {}{}".format(g,t))
     m.optimize()
-    #Debugging Infeasibility
-    #print("~~~__=========__~~~")
-    #print(m.getConstrs())
-    #print("~~~__=========__~~~")
     m.write('Pcc_CC_FullModel.lp')
     if(m.Status != 2):
         m.computeIIS()
@@ -176,12 +171,7 @@ def runRealTimeSimulations(data,DeltaVals,DA_Opt_Dispatch,DA_Opt_AlphaVals):
         for t in T:
             #Realtime-Balance Criteria
             T_index=int(t.strip('t'))-1
-            #print('Load in hour: {}'.format(sum(data['ELDemand'][d]['share']*data['Demand'][t]['EL'] for d in A_DE)))
             Surplus_Gen.append(np.sum(P_net,axis = 0)[T_index] + (np.sum(wind_forecast, axis = 0)[T_index] + DeltaVals[(t)]) - sum(data['ELDemand'][d]['share']*data['Demand'][t]['EL'] for d in A_DE))
-        print('Total Flex Generation: {}'.format(np.sum(P_net,axis=0)))
-        print('Total Wind Forecast:{}'.format(np.sum(wind_forecast, axis = 0)))
-        #print('Total Wind Realization = {}'.format((np.sum(wind_forecast, axis = 0) + DeltaVals[(t)])))
-        print('Surplus Generation: {}'.format(np.round(Surplus_Gen,2)))
         if(any(item > 0.001 for item in Surplus_Gen)):
             print('WindSpillage')
         if(any(item < -0.001 for item in Surplus_Gen)):
@@ -192,5 +182,4 @@ def runRealTimeSimulations(data,DeltaVals,DA_Opt_Dispatch,DA_Opt_AlphaVals):
         Total_RT_Generation_Cost = np.sum(np.sum(Cost_gen_net,axis=0))
         VOLL_Cost = LoadShedding_This_Scenario*VOLL
         Total_RT_Operation_Cost = Total_RT_Generation_Cost + VOLL_Cost
-        print('Total RT Generation cost: {:.2e}'.format(Total_RT_Operation_Cost))
         return Total_RT_Operation_Cost,P_net,WindSpillage_This_Scenario,WindSpillage_This_Scenario,P_Adjustments

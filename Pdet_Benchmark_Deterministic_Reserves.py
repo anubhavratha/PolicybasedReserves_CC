@@ -1,5 +1,4 @@
-''' Deterministic Benchmark '''
-
+''' Deterministic Benchmark for Reserve Procurement and Activation using Minimum Reserve Margin (MRR) '''
 import numpy as np
 import pandas as pd
 import gurobipy as gb
@@ -156,18 +155,6 @@ def clearRTBalancingMarket(data,DeltaVals,DA_Opt_Dispatch,DA_Opt_Reserves):
     PrintableAdjustments = [[np.round(float(i), 4) for i in nested] for nested in Adjustments]
     PrintableLoadSheds = [[np.round(float(i), 4) for i in nested] for nested in LoadSheds]
     PrintableWindSpills = [[np.round(float(i), 4) for i in nested] for nested in WindSpills]
-    #Optional: Print the values of variables scenario specific
-    '''print('------------Scenario Specific Results----')
-    print('Adustments: \n')
-    for i in PrintableAdjustments:
-        print(*i)
-    print('Load Shedding: \n')
-    for i in PrintableLoadSheds:
-        print(*i)
-    print('Wind Spillage: \n')
-    for i in PrintableWindSpills:
-        print(*i)
-    print('----End of Scenario Specific Results ----')'''
     #Recovering Balancing Price
     duals={}
     for c in rt_model.getConstrs():
