@@ -1,5 +1,18 @@
 # Policy-based reserves in day-ahead electricity markets
-This code repository is the online appendix for the paper - "Exploring Market Properties of Policy-based Reserve Procurement for Power Systems".
+This repository contains the python scripts accompanying the paper:
+https://ieeexplore.ieee.org/abstract/document/9029777
+If you are re-using parts of the code, please cite the work as:
+@INPROCEEDINGS{9029777,
+  author={Ratha, Anubhav and Kazempour, Jalal and Virag, Ana and Pinson, Pierre},
+  booktitle={2019 IEEE 58th Conference on Decision and Control (CDC)},
+  title={Exploring Market Properties of Policy-based Reserve Procurement for Power Systems},
+  year={2019},
+  volume={},
+  number={},
+  pages={7498-7505},
+  doi={10.1109/CDC40024.2019.9029777}}
 
-
-https://doi.org/10.5281/zenodo.2595186
+## Instructions for navigating the programs:
+1. The excel sheet "Generators_and_Load_Data.xlsx" contains the cost and operational constraints related to the generators and demand in the single-node electricity network considered in the case study.
+2. The python scripts "Pcc_ChanceConstrained_ReserveAllocation.py" and "Pdet_Benchmark_Deterministic_Reserves.py" contain the optimization models corresponding to the proposed chance-constrained energy and reserve co-optimization problem and a deterministic co-optimization benchmark, respectively. Both these optimization problems are formulated as linear programs and are solved using Gurobi solver.
+3. The python script "Run_OOS_Simulations_Pcc_Pdet.py" performs biased and unbiased out-of-sample simulations on the chance-constrained and deterministic benchmark and collects the results that compare these two approaches. The CSV file "WindForecast_Errors_1000Scenarios.csv" contains the synthetic forecast error scenarios used. The function "generate_wind_RT_realizations" can be used to generate new scenarios based on the preferred dispersion criteria, parametrized by the input float Sigma_baseline_Multiplier.
