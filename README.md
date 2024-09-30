@@ -3,6 +3,7 @@ This repository contains the python scripts accompanying the paper:
 https://ieeexplore.ieee.org/abstract/document/9029777
 
 If you are re-using parts of the code, please cite the work as:
+
 @INPROCEEDINGS{9029777,
   author={Ratha, Anubhav and Kazempour, Jalal and Virag, Ana and Pinson, Pierre},
   booktitle={2019 IEEE 58th Conference on Decision and Control (CDC)},
