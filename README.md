@@ -1,6 +1,7 @@
 # Policy-based reserves in day-ahead electricity markets
 This repository contains the python scripts accompanying the paper:
 https://ieeexplore.ieee.org/abstract/document/9029777
+
 If you are re-using parts of the code, please cite the work as:
 @INPROCEEDINGS{9029777,
   author={Ratha, Anubhav and Kazempour, Jalal and Virag, Ana and Pinson, Pierre},
