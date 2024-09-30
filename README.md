@@ -3,15 +3,7 @@ This repository contains the python scripts accompanying the paper: "Exploring M
 
 If you are re-using parts of the code, please cite the work as:
 
-@INPROCEEDINGS{9029777,
-  author={Ratha, Anubhav and Kazempour, Jalal and Virag, Ana and Pinson, Pierre},
-  booktitle={2019 IEEE 58th Conference on Decision and Control (CDC)},
-  title={Exploring Market Properties of Policy-based Reserve Procurement for Power Systems},
-  year={2019},
-  volume={},
-  number={},
-  pages={7498-7505},
-  doi={10.1109/CDC40024.2019.9029777}}
+A. Ratha, J. Kazempour, A. Virag and P. Pinson, "_Exploring Market Properties of Policy-based Reserve Procurement for Power Systems_," 2019 IEEE 58th Conference on Decision and Control (CDC), Nice, France, 2019, pp. 7498-7505, doi: 10.1109/CDC40024.2019.9029777.
 
 ## Instructions for navigating the programs:
 1. The excel sheet "Generators_and_Load_Data.xlsx" contains the cost and operational constraints related to the generators and demand in the single-node electricity network considered in the case study.
